@@ -1,0 +1,11 @@
+# Ignore heavy media and datasets
+*.mp4
+*.wav
+audio_speech_actors_01-24/
+dev-v2.0.json
+ravdess_calibration_cache.json
+
+# Standard Python ignores
+__pycache__/
+*.pyc
+.env

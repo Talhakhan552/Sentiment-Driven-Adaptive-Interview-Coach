@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sentiment Driven AI Coach</title>
+    <script type="text/javascript" src="/eel.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        /* LEFT SIDEBAR */
+        #sidebar {
+            width: 280px;
+            padding: 30px 20px;
+            background: #0b0f19;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: var(--accent);
+        }
+
+        label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 0 15px var(--accent-glow);
+            width: 100%;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: var(--border);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        #stop-btn {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            box-shadow: none;
+            margin-top: 8px;
+        }
+
+        #stop-btn:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        #stop-btn:disabled {
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
+
+        /* STATUS */
+        #status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #475569;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .pulsing {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* MAIN AREA */
+        #main-area {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #question-box {
+            flex-shrink: 0;
+        }
+
+        #q-text {
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        /* METRICS ROW — now 4 cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 14px;
+        }
+
+        .metric-val {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        /* Score ring */
+        #score-ring {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 4px solid #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 8px auto 0;
+            font-size: 15px;
+            font-weight: bold;
+            transition: border-color 0.4s, color 0.4s;
+        }
+
+        /* LIVE FEED */
+        #chat-feed-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        #chat-feed {
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 13px;
+            color: #cbd5e1;
+            background: #0b0f19;
+            padding: 14px;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+
+        .chat-line {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #1e293b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1>🎙️ Sentiment Driven AI Coach</h1>
+
+        <div>
+            <label>Technical Domain</label>
+            <select id="domain-select"></select>
+        </div>
+
+        <div>
+            <label>Question Count (1–20)</label>
+            <input type="number" id="q-count" value="3" min="1" max="20">
+        </div>
+
+        <button id="start-btn" onclick="startSession()">INITIALIZE SESSION</button>
+        <button id="stop-btn" onclick="stopSession()" disabled>STOP SESSION</button>
+
+        <div style="margin-top: auto; color: var(--text-muted); font-size: 13px; padding-top: 20px;">
+            <span id="status-indicator"></span>
+            <span id="system-status">SYSTEM IDLE</span>
+        </div>
+    </div>
+
+    <div id="main-area">
+
+        <div class="top-bar">
+            <div id="persona-badge" class="badge" style="color:#fbbf24; border:1px solid #fbbf24;">
+                Persona: Strict Recruiter
+            </div>
+            <div class="badge" id="progress-text" style="color: var(--text-muted);">
+                Question 0 of 0
+            </div>
+        </div>
+
+        <!-- Question -->
+        <div id="question-box" class="glass-panel">
+            <label style="color: var(--accent); display:block; margin-bottom: 12px;">Active Question</label>
+            <div id="q-text">Waiting to initialize...</div>
+        </div>
+
+        <!-- 4 metric cards -->
+        <div class="metrics-grid">
+
+            <div class="glass-panel metric-card">
+                <label>Acoustic State</label>
+                <div id="metric-emotion" class="metric-val" style="color:#475569;">--</div>
+            </div>
+
+            <div class="glass-panel metric-card">
+                <label>Lexical Complexity</label>
+                <div id="metric-complexity" class="metric-val" style="color:#475569;">--</div>
+            </div>
+
+            <!-- NEW: Last Answer Score -->
+            <div class="glass-panel metric-card">
+                <label>Last Answer Score</label>
+                <div id="score-ring">--</div>
+                <div id="score-feedback"
+                    style="font-size:11px; color:var(--text-muted); margin-top:6px; min-height:16px;">
+                </div>
+            </div>
+
+            <!-- NEW: Session Average -->
+            <div class="glass-panel metric-card">
+                <label>Session Average</label>
+                <div id="metric-avg" class="metric-val" style="color:#475569;">--</div>
+            </div>
+
+        </div>
+
+        <!-- Live feed -->
+        <div class="glass-panel" id="chat-feed-wrap">
+            <label style="display:block; margin-bottom: 10px;">
+                Live Transcription &amp; System Logs
+            </label>
+            <div id="chat-feed"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Startup ────────────────────────────────────────────────────
+        async function loadData() {
+            const fields = await eel.get_initial_data()();
+            const sel = document.getElementById("domain-select");
+            fields.forEach(f => {
+                const opt = document.createElement("option");
+                opt.value = f; opt.innerText = f;
+                sel.appendChild(opt);
+            });
+        }
+        window.onload = loadData;
+
+        // ── Session score tracking ─────────────────────────────────────
+        let sessionScores = [];
+
+        // ── Buttons ────────────────────────────────────────────────────
+        function startSession() {
+            sessionScores = [];
+            document.getElementById("metric-avg").innerText = "--";
+            document.getElementById("metric-avg").style.color = "#475569";
+            document.getElementById("score-ring").innerText = "--";
+            document.getElementById("score-ring").style.borderColor = "#475569";
+            document.getElementById("score-ring").style.color = "#475569";
+            document.getElementById("score-feedback").innerText = "";
+
+            const field = document.getElementById("domain-select").value;
+            const count = document.getElementById("q-count").value;
+
+            document.getElementById("start-btn").disabled = true;
+            document.getElementById("start-btn").innerText = "SESSION ACTIVE";
+            document.getElementById("stop-btn").disabled = false;
+            document.getElementById("chat-feed").innerHTML = "";
+
+            eel.start_interview_from_ui(field, count);
+        }
+
+        function stopSession() {
+            document.getElementById("stop-btn").innerText = "STOPPING...";
+            document.getElementById("stop-btn").disabled = true;
+            eel.stop_interview_from_ui();
+        }
+
+        // ── Python → JS callbacks ──────────────────────────────────────
+        eel.expose(update_question);
+        function update_question(q) {
+            document.getElementById("q-text").innerText = q;
+        }
+
+        eel.expose(update_progress);
+        function update_progress(current, total) {
+            document.getElementById("progress-text").innerText =
+                `Question ${current} of ${total}`;
+        }
+
+        eel.expose(update_status);
+        function update_status(text, color, isPulsing) {
+            document.getElementById("system-status").innerText = text;
+            document.getElementById("system-status").style.color = color;
+            const ind = document.getElementById("status-indicator");
+            ind.style.background = color;
+            isPulsing ? ind.classList.add("pulsing") : ind.classList.remove("pulsing");
+        }
+
+        eel.expose(update_transcript);
+        function update_transcript(text) {
+            const feed = document.getElementById("chat-feed");
+            feed.innerHTML +=
+                `<div class="chat-line" style="color:white;">🗣️ You: "${text}"</div>`;
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        eel.expose(update_metrics);
+        function update_metrics(emotion, emoColor, complexity) {
+            const e = document.getElementById("metric-emotion");
+            e.innerText = emotion; e.style.color = emoColor;
+            const c = document.getElementById("metric-complexity");
+            c.innerText = complexity; c.style.color = "white";
+        }
+
+        // NEW: update the score ring + session average
+        eel.expose(update_score);
+        function update_score(score, color, feedback) {
+            // Score ring
+            const ring = document.getElementById("score-ring");
+            ring.innerText = score + "%";
+            ring.style.borderColor = color;
+            ring.style.color = color;
+
+            // Feedback text under ring
+            document.getElementById("score-feedback").innerText = feedback;
+
+            // Recompute session average
+            sessionScores.push(score);
+            const avg = Math.round(
+                sessionScores.reduce((a, b) => a + b, 0) / sessionScores.length);
+            const avgColor = avg >= 60 ? "#10b981" : avg >= 30 ? "#f59e0b" : "#ef4444";
+            const avgNode = document.getElementById("metric-avg");
+            avgNode.innerText = avg + "%";
+            avgNode.style.color = avgColor;
+        }
+
+        eel.expose(update_persona);
+        function update_persona(persona, color) {
+            const p = document.getElementById("persona-badge");
+            p.innerText = `Persona: ${persona}`;
+            p.style.color = color;
+            p.style.borderColor = color;
+        }
+
+        eel.expose(update_chat);
+        function update_chat(msg) {
+            const feed = document.getElementById("chat-feed");
+            feed.innerHTML += `<div class="chat-line">${msg}</div>`;
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        eel.expose(session_finished);
+        function session_finished() {
+            const s = document.getElementById("start-btn");
+            s.disabled = false; s.innerText = "INITIALIZE NEW SESSION";
+            const t = document.getElementById("stop-btn");
+            t.disabled = true; t.innerText = "STOP SESSION";
+        }
+    </script>
+</body>
+
+</html>
